@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>쿠팡 셀러 분석 도구</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 350px;
+      min-height: 500px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+    }
+
+    .header {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      padding: 20px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .header h1 {
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 12px;
+    }
+
+    .content {
+      padding: 20px;
+      background: white;
+      min-height: 400px;
+    }
+
+    .current-page {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .current-page h3 {
+      color: #495057;
+      font-size: 14px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .page-info {
+      font-size: 12px;
+      color: #6c757d;
+      margin-bottom: 10px;
+    }
+
+    .analyze-btn {
+      width: 100%;
+      background: linear-gradient(45deg, #ff6b35, #f7931e);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .analyze-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+    }
+
+    .analyze-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .quick-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    .stat-card {
+      background: #f8f9fa;
+      border-radius: 6px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 18px;
+      font-weight: 700;
+      color: #495057;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #6c757d;
+      margin-top: 4px;
+    }
+
+    .recent-keywords {
+      margin-top: 20px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .keyword-list {
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .keyword-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      margin-bottom: 5px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .keyword-item:hover {
+      background: #e9ecef;
+    }
+
+    .keyword-name {
+      font-weight: 500;
+      color: #495057;
+    }
+
+    .keyword-time {
+      color: #6c757d;
+      font-size: 11px;
+    }
+
+    .action-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .secondary-btn {
+      background: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .secondary-btn:hover {
+      background: #5a6268;
+    }
+
+    .primary-btn {
+      background: linear-gradient(45deg, #28a745, #20c997);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(40, 167, 69, 0.4);
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .spinner {
+      width: 30px;
+      height: 30px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #ff6b35;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status-active { background: #28a745; }
+    .status-inactive { background: #dc3545; }
+    .status-analyzing { background: #ffc107; }
+
+    .no-data {
+      text-align: center;
+      color: #6c757d;
+      font-size: 12px;
+      padding: 20px;
+    }
+
+    /* 스크롤바 스타일링 */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 2px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 2px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎯 쿠팡 셀러 분석</h1>
+    <p>틈새시장 발견 도구</p>
+  </div>
+
+  <div class="content">
+    <!-- 현재 페이지 분석 섹션 -->
+    <div class="current-page">
+      <h3>
+        <span class="status-indicator status-inactive" id="pageStatus"></span>
+        현재 페이지
+      </h3>
+      <div class="page-info" id="pageInfo">
+        쿠팡 페이지에서 사용하세요
+      </div>
+      <button class="analyze-btn" id="analyzeBtn" disabled>
+        페이지 분석하기
+      </button>
+    </div>
+
+    <!-- 빠른 통계 -->
+    <div class="quick-stats" id="quickStats" style="display: none;">
+      <div class="stat-card">
+        <div class="stat-number" id="productCount">0</div>
+        <div class="stat-label">분석된 상품</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="avgReviews">0</div>
+        <div class="stat-label">평균 리뷰수</div>
+      </div>
+    </div>
+
+    <!-- 로딩 상태 -->
+    <div class="loading" id="loadingSection">
+      <div class="spinner"></div>
+      <div>분석 중입니다...</div>
+    </div>
+
+    <!-- 최근 분석 키워드 -->
+    <div class="recent-keywords">
+      <div class="section-title">
+        📊 최근 분석
+      </div>
+      <div class="keyword-list" id="keywordList">
+        <div class="no-data">
+          아직 분석된 키워드가 없습니다
+        </div>
+      </div>
+    </div>
+
+    <!-- 액션 버튼들 -->
+    <div class="action-buttons">
+      <button class="secondary-btn" id="settingsBtn">
+        ⚙️ 설정
+      </button>
+      <button class="primary-btn" id="dashboardBtn">
+        📈 대시보드
+      </button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
